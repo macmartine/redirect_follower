@@ -16,52 +16,68 @@ end
 #
 class RedirectFollower
   class TooManyRedirects < StandardError; end
-  
+
   attr_accessor :original_url, :redirect_limit
-  attr_writer :url, :response
-  
+  attr_writer  :response
+
   def initialize(original_url, limit=5)
     @original_url, @redirect_limit = original_url, limit
   end
-  
+
+  def url=(value)
+    if relative?(value)
+      @url = "#{original_url}#{value}"
+    else
+      @url = value
+    end
+    @url
+  end
+
+
   def url
     resolve unless @url
     @url
   end
-  
+
   def body
     response.body
   end
-  
+
   def response
     resolve unless @response
     @response
   end
-  
+
   private
-  
-    def resolve
-      raise TooManyRedirects if redirect_limit < 0
-      
-      # Set up current url if not resolved yet
-      self.url = original_url unless @url
-      
-      self.response = Net::HTTP.get_response(URI.parse(url))
 
-      if response.kind_of?(Net::HTTPRedirection)
-        self.url = redirect_url
-        self.redirect_limit -= 1
-        resolve
-      end
-      
-      self
+  def relative?(path)
+    return false if path.nil?
+    return false if path && path.include?('://')
+    return true
+  end
+
+  def resolve
+    raise TooManyRedirects if redirect_limit < 0
+
+    # Set up current url if not resolved yet
+    self.url = original_url unless @url
+
+    self.response = Net::HTTP.get_response(URI.parse(url))
+
+    if response.kind_of?(Net::HTTPRedirection)
+      self.url = redirect_url
+      self.redirect_limit -= 1
+      resolve
     end
 
-    def redirect_url
-      if response['location'].nil?
-        response.body.match(/<a href=\"([^>]+)\">/i)[1]
-      else
-        response['location']
-      end
+    self
+  end
+
+  def redirect_url
+    if response['location'].nil?
+      response.body.match(/<a href=\"([^>]+)\">/i)[1]
+    else
+      response['location']
     end
+  end
 end
