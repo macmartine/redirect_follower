@@ -62,7 +62,14 @@ class RedirectFollower
     # Set up current url if not resolved yet
     self.url = original_url unless @url
 
-    self.response = Net::HTTP.get_response(URI.parse(url))
+		_url = URI.parse(url)
+		http = Net::HTTP.new(_url.host, _url.port)
+		http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+		if url.include?('https')
+			http.use_ssl = true
+		end
+		request = Net::HTTP::Get.new(_url.request_uri)
+		self.response = http.request request
 
     if response.kind_of?(Net::HTTPRedirection)
       self.url = redirect_url
