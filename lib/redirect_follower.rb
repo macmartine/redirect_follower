@@ -68,7 +68,7 @@ class RedirectFollower
 		if url.include?('https')
 			http.use_ssl = true
 		end
-		request = Net::HTTP::Get.new(_url.request_uri)
+		request = Net::HTTP::Get.new(_url.request_uri, { "Accept-Encoding" => "none" })
 		self.response = http.request request
 
     if response.kind_of?(Net::HTTPRedirection)
